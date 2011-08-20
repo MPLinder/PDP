@@ -1,0 +1,13 @@
+<html>
+    <head>
+        <title>object Detail</title>
+    </head>
+    <body>
+        <h1>object Detail</h1>
+        <h2>{{  object.title  }}</h2>
+        <p>Published on {{  object.pub_date|date:"F j, Y"  }} by {{ object.author  }}</p>
+        {{  object.body_html|safe  }}
+        <p>Categories: {{  object.categories  }}</p>
+        <p>Tag: {{  object.tags  }}</p>
+    </body>
+</html>

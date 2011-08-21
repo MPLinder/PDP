@@ -9,6 +9,9 @@ ADMINS = (
 
 MANAGERS = ADMINS
 
+DELICIOUS_USER = 'PDPtest'
+DELICIOUS_PASSWORD = 'fuckthis1'
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3', # Add 'postgresql_psycopg2', 'postgresql', 'mysql', 'sqlite3' or 'oracle'.

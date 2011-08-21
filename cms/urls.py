@@ -14,7 +14,7 @@ urlpatterns = patterns('',
     # Uncomment the next line to enable the admin:
     (r'^admin/', include(admin.site.urls)),
     (r'^tiny_mce/(?P<path>.*)$', 'django.views.static.serve',
-                        { 'document_root': '/Users/michaellinder/development/tinymce/jscripts/tiny_mce' }),
+                        { 'document_root': '/Users/michaellinder/development/PDP/tinymce/jscripts/tiny_mce' }),
     (r'^search/$', 'cms.search.views.search'),
     (r'^weblog/', include('coltrane.urls')),
     (r'', include('django.contrib.flatpages.urls')),

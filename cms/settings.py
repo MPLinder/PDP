@@ -3,6 +3,9 @@
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
 
+EMAIL_HOST = 'mail.google.com'
+EMAIL_PORT = 465
+
 ADMINS = (
     # ('Your Name', 'your_email@domain.com'),
 )
@@ -95,6 +98,8 @@ INSTALLED_APPS = (
     'django.contrib.messages',
     'django.contrib.admin',
     'django.contrib.flatpages',
+    'django.contrib.comments',
+    'django.contrib.markup',
     'cms.search',
     'coltrane',
     'tagging',
@@ -104,3 +109,8 @@ INSTALLED_APPS = (
     # Uncomment the next line to enable admin documentation:
     # 'django.contrib.admindocs',
 )
+
+try:
+    from local_settings import *
+except:
+    pass

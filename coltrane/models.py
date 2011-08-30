@@ -2,11 +2,20 @@ import datetime
 
 from django.db import models
 from django.contrib.auth.models import User
+from django.contrib.comments.models import Comment
+from django.contrib.comments.signals import comment_will_be_posted
+from django.contrib.sites.models import Site
+from django.db.models import signals
 from django.conf import settings
+from django.utils.encoding import smart_str
 
 from tagging.fields import TagField
 from markdown import markdown
+from akismet import Akismet
 
+class LiveEntryManager(models.Manager):
+    def get_query_set(self):
+        return super(LiveEntryManager, self).get_query_set().filter(status=self.model.LIVE_STATUS)
 
 class Category(models.Model):
     title = models.CharField(max_length=250, help_text="Maximum 250 Characters")
@@ -22,6 +31,10 @@ class Category(models.Model):
 
     def get_absolute_url(self):
         return "/categories/%s/" % self.slug
+
+    def live_entry_set(self):
+        from coltrane.models import Entry
+        return self.entry_set.filter(status=Entry.LIVE_STATUS)
 
 
 class Entry(models.Model):
@@ -54,6 +67,10 @@ class Entry(models.Model):
     #Categorization
     categories = models.ManyToManyField(Category)
     tag = TagField()
+
+    #Manager
+    live = LiveEntryManager()
+    objects = models.Manager()
 
     class Meta:
         verbose_name_plural = "Entries"
@@ -113,3 +130,24 @@ class Link(models.Model):
                                                           'month': self.pub_date.strftime('%b'.lower()),
                                                           'day': self.pub_date.strftime('%d'),
                                                           'slug': self.slug,})
+
+def moderate_comment(sender, comment, request, **kwargs):
+    if not comment.id:
+        entry = comment.content_object
+        delta = datetime.datetime.now() - entry.pub_date
+        if delta.days > 30:
+            comment.is_public = False
+        else:
+            akismet_api = Akismet(key=settings.AKISMET_API_KEY,
+                                  blog_url='http://%s' % Site.objects.get_current().domain)
+            if akismet_api.verify_key():
+                akismet_data = {'comment_type': comment,
+                                'referrer': request.META['HTTP_REFERER'],
+                                'user_ip': comment.ip_address,
+                                'user_agent': request.META['HTTP_USER_AGENT']}
+                if akismet_api.comment_check(smart_str(comment.comment),
+                                             akismet_data,
+                                             build_data=True):
+                    comment.is_public = False
+
+comment_will_be_posted.connect(moderate_comment, sender=Comment)

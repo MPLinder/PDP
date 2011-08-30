@@ -12,7 +12,7 @@
     {% else %}
     <h1>{% trans "Preview your comment" %}</h1>
       {% load markup %}
-      <blockquote>{{ comment|markdown: "safe" }}</blockquote>
+      <blockquote>{{ comment|markdown:"safe" }}</blockquote>
       <p>
       {% trans "and" %} <input type="submit" name="submit" class="submit-post" value="{% trans "Post your comment" %}" id="submit" /> {% trans "or make changes" %}:
       </p>

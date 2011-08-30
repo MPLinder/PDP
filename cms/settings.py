@@ -3,9 +3,6 @@
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
 
-EMAIL_HOST = 'mail.google.com'
-EMAIL_PORT = 465
-
 ADMINS = (
     # ('Your Name', 'your_email@domain.com'),
 )

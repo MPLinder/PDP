@@ -1,1 +1,0 @@
-AKISMET_API_KEY = 'b8b0f69a1b17'

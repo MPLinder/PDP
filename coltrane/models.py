@@ -7,7 +7,9 @@ from django.contrib.comments.signals import comment_will_be_posted
 from django.contrib.sites.models import Site
 from django.db.models import signals
 from django.conf import settings
+from django.core.mail import mail_managers
 from django.utils.encoding import smart_str
+from django.contrib.comments.moderation import CommentModerator, moderator
 
 from tagging.fields import TagField
 from markdown import markdown
@@ -98,7 +100,7 @@ class Link(models.Model):
     description_html = models.TextField(editable=False, blank=True)
     url = models.URLField(unique=True)
     posted_by = models.ForeignKey(User)
-    pub_date = models.DateField(default=datetime.datetime.now)
+    pub_date = models.DateTimeField(default=datetime.datetime.now)
     slug = models.SlugField(unique_for_date='pub_date')
     tags = TagField()
     enable_comments = models.BooleanField(default=True)
@@ -131,23 +133,48 @@ class Link(models.Model):
                                                           'day': self.pub_date.strftime('%d'),
                                                           'slug': self.slug,})
 
-def moderate_comment(sender, comment, request, **kwargs):
-    if not comment.id:
-        entry = comment.content_object
-        delta = datetime.datetime.now() - entry.pub_date
-        if delta.days > 30:
-            comment.is_public = False
-        else:
-            akismet_api = Akismet(key=settings.AKISMET_API_KEY,
-                                  blog_url='http://%s' % Site.objects.get_current().domain)
-            if akismet_api.verify_key():
-                akismet_data = {'comment_type': comment,
-                                'referrer': request.META['HTTP_REFERER'],
-                                'user_ip': comment.ip_address,
-                                'user_agent': request.META['HTTP_USER_AGENT']}
-                if akismet_api.comment_check(smart_str(comment.comment),
-                                             akismet_data,
-                                             build_data=True):
-                    comment.is_public = False
+#def moderate_comment(sender, comment, request, **kwargs):
+#    if not comment.id:
+#        entry = comment.content_object
+#        delta = datetime.datetime.now() - entry.pub_date
+#        if delta.days > 30:
+#            comment.is_public = False
+#        else:
+#            akismet_api = Akismet(key=settings.AKISMET_API_KEY,
+#                                  blog_url='http://%s' % Site.objects.get_current().domain)
+#            if akismet_api.verify_key():
+#                akismet_data = {'comment_type': comment,
+#                                'referrer': request.META['HTTP_REFERER'],
+#                                'user_ip': comment.ip_address,
+#                                'user_agent': request.META['HTTP_USER_AGENT']}
+#                if akismet_api.comment_check(smart_str(comment.comment),
+#                                             akismet_data,
+#                                             build_data=True):
+#                    comment.is_public = False
+#        email_body = "%s posted a new comment on the entry '%s'"
+#        mail_managers('New comment posted', email_body % (comment.name, comment.content_object))
+#
+#comment_will_be_posted.connect(moderate_comment, sender=Comment)
 
-comment_will_be_posted.connect(moderate_comment, sender=Comment)
+class EntryModerator(CommentModerator):
+    auto_moderate_field = 'pub_date'
+    moderate_after = 30
+#    email_notification = True
+
+    def moderate(self, comment, content_object, request):
+        already_moderated = super(EntryModerator, self).moderate(comment, content_object, request)
+        if already_moderated:
+            return True
+        akismet_api = Akismet(key=settings.AKISMET_API_KEY,
+                              blog_url='http://%s' % Site.objects.get_current().domain)
+        if akismet_api.verify_key():
+            akismet_data = {'comment_type': comment,
+                            'referrer': request.META['HTTP_REFERER'],
+                            'user_ip': comment.ip_address,
+                            'user_agent': request.META['HTTP_USER_AGENT']}
+            return akismet_api.comment_check(smart_str(comment.comment),
+                                         akismet_data,
+                                         build_data=True)
+        return false
+
+moderator.register(Entry, EntryModerator)
